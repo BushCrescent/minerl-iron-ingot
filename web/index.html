@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mining Iron from Pixels — VPT on MineRL</title>
+<meta name="description" content="A Video Pre-Training agent that obtains an iron ingot in Minecraft from raw pixels, 95.6% of the time.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛏️</text></svg>">
+</head>
+<body>
+
+<a class="skip" href="#demo">Skip to demo</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>VPT&nbsp;<span class="dim">/</span>&nbsp;Iron Ingot</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#demo">Demo</a>
+      <a href="#problem">Problem</a>
+      <a href="#pipeline">Method</a>
+      <a href="#results">Results</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#author">Author</a>
+    </nav>
+    <div class="nav-actions">
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Switch theme">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/>
+        </svg>
+      </button>
+      <a class="btn btn-ghost" href="https://github.com/BushCrescent/minerl-iron-ingot" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ─────────────────────────  HERO  ───────────────────────── -->
+<section class="hero">
+  <div class="wrap hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow">CS175 · Project in AI · Video Pre-Training on MineRL v1.0</p>
+      <h1>An agent that mines<br>its own <span class="hl">iron ingot</span>.</h1>
+      <p class="lede">
+        Dropped into a fresh, randomly generated Minecraft world with an empty inventory,
+        a 0.5B-parameter transformer policy chops wood, crafts a pickaxe, digs to the
+        stone layer, hunts iron ore, builds a furnace, and smelts an ingot — from nothing
+        but <strong>640×360 pixels</strong> and a keyboard-and-mouse action space.
+        No API access, no scripted subroutines, no reward shaping.
+      </p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#demo">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M4.5 2.6v10.8c0 .5.55.8.97.53l8.4-5.4a.63.63 0 0 0 0-1.06l-8.4-5.4a.63.63 0 0 0-.97.53Z"/></svg>
+          Watch the agent run
+        </a>
+        <a class="btn btn-ghost" href="#results">See the results</a>
+      </div>
+    </div>
+
+    <figure class="hero-figure">
+      <div class="hero-num" id="hero-rate">95.6%</div>
+      <figcaption>
+        <strong>success rate</strong>
+        <span>43 of 45 completed episodes reached an iron ingot</span>
+      </figcaption>
+      <ul class="hero-mini">
+        <li><span class="mini-v">4,246</span><span class="mini-l">avg. steps</span></li>
+        <li><span class="mini-v">1,592</span><span class="mini-l">fastest run</span></li>
+        <li><span class="mini-v">8</span><span class="mini-l">milestones</span></li>
+      </ul>
+    </figure>
+  </div>
+</section>
+
+<!-- ─────────────────────────  LIVE DEMO  ───────────────────────── -->
+<section id="demo" class="section">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="eyebrow">Live demo</p>
+      <h2>Run the agent in the browser</h2>
+      <p class="sec-sub">
+        Minecraft itself can't run in a web page — MineRL launches a real Java client
+        with an OpenGL context. So it runs <em>headless on the server</em> and streams the
+        agent's own point of view here, frame by frame. Nothing opens on your machine.
+      </p>
+    </header>
+
+    <div class="demo">
+      <div class="demo-stage">
+        <div class="viewport" id="viewport">
+          <canvas id="frame" width="640" height="360" aria-label="Agent point-of-view stream"></canvas>
+          <video id="replay" playsinline muted preload="metadata"></video>
+
+          <div class="vp-overlay" id="vp-overlay">
+            <button class="play-btn" id="run-btn" type="button">
+              <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M4.5 2.6v10.8c0 .5.55.8.97.53l8.4-5.4a.63.63 0 0 0 0-1.06l-8.4-5.4a.63.63 0 0 0-.97.53Z"/></svg>
+              <span id="run-label">Run agent</span>
+            </button>
+            <p class="vp-hint" id="vp-hint">Checking for a live backend…</p>
+          </div>
+
+          <div class="vp-hud" id="vp-hud" hidden>
+            <span class="hud-pill" id="hud-mode">replay</span>
+            <span class="hud-pill" id="hud-step">step 0</span>
+            <span class="hud-pill" id="hud-reward">reward 0</span>
+          </div>
+        </div>
+
+        <div class="demo-bar">
+          <div class="demo-status">
+            <span class="dot" id="conn-dot" data-state="unknown"></span>
+            <span id="conn-text">Detecting backend…</span>
+          </div>
+          <div class="demo-controls">
+            <button class="btn btn-sm btn-ghost" id="stop-btn" type="button" disabled>Stop</button>
+            <button class="btn btn-sm btn-ghost" id="mode-btn" type="button">Use replay</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="demo-side">
+        <h3>Milestone chain</h3>
+        <p class="side-sub">Each step the environment emits a reward bit the first time an item enters the inventory. They light up in order.</p>
+        <ol class="chain" id="chain"></ol>
+        <div class="chain-foot">
+          <div><span class="cf-v" id="live-elapsed">0:00</span><span class="cf-l">elapsed</span></div>
+          <div><span class="cf-v" id="live-progress">0 / 8</span><span class="cf-l">milestones</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <details class="note">
+      <summary>How the live mode works, and why it's off by default</summary>
+      <p>
+        A single MineRL environment runs inside a container with <code>Xvfb</code> providing a
+        virtual X display and software OpenGL. The VPT policy steps it in a loop; each
+        640×360 POV frame is JPEG-encoded and pushed over a WebSocket alongside step count
+        and reward events. Every connected viewer watches the <em>same</em> episode — one
+        environment broadcast to many clients, rather than one Minecraft instance per visitor,
+        which would need several GB of RAM each.
+      </p>
+      <p>
+        That backend needs a persistent GPU box (~7 min per episode on a T4; 30+ min on CPU),
+        so the public site ships in <strong>replay mode</strong> — a recorded episode with the
+        identical HUD and milestone timeline. Point <code>DEMO_BACKEND</code> in
+        <code>config.js</code> at a running server and the same viewport goes live automatically.
+      </p>
+    </details>
+  </div>
+</section>
+
+<!-- ─────────────────────────  PROBLEM  ───────────────────────── -->
+<section id="problem" class="section alt">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="eyebrow">The problem</p>
+      <h2>Why this is hard</h2>
+      <p class="sec-sub">
+        "Get an iron ingot" sounds like a tutorial task. As a learning problem it sits in the
+        worst corner of the difficulty space: long horizon, sparse reward, partial observability,
+        and an action space built for human hands.
+      </p>
+    </header>
+
+    <div class="cards">
+      <article class="card">
+        <span class="card-n">01</span>
+        <h3>A ~4,000-step horizon</h3>
+        <p>
+          The ingot arrives around step 3,600 on average, and the budget is 18,000. Credit for
+          the final smelt has to propagate back past thousands of intervening decisions — far
+          beyond what standard RL assigns reliably.</p>
+      </article>
+      <article class="card">
+        <span class="card-n">02</span>
+        <h3>Eight-link dependency chain</h3>
+        <p>
+          Ingot needs a furnace and ore; ore needs a stone pickaxe; stone needs a wooden
+          pickaxe; that needs planks, sticks and a crafting table; all of it needs a log.
+          Break any link and the run is dead — there's no recovering a missing pickaxe.</p>
+      </article>
+      <article class="card">
+        <span class="card-n">03</span>
+        <h3>Pixels only</h3>
+        <p>
+          The policy sees the same 640×360 screen a person sees, GUI and all. Inventory state
+          must be read off rendered menus. There is no symbolic observation, no item list, no
+          coordinates.</p>
+      </article>
+      <article class="card">
+        <span class="card-n">04</span>
+        <h3>A human action space</h3>
+        <p>
+          24 binary keys plus continuous mouse movement, quantised into camera bins. Crafting
+          means physically moving a cursor across a GUI grid — not calling <code>craft()</code>.</p>
+      </article>
+      <article class="card">
+        <span class="card-n">05</span>
+        <h3>Iron is genuinely scarce</h3>
+        <p>
+          Ore only generates below y≈63 and peaks in a narrow band. The agent has to dig down,
+          survive, and search — the step from stone tools to iron ore is the single longest
+          gap in the chain, averaging <strong>1,447 steps</strong>.</p>
+      </article>
+      <article class="card">
+        <span class="card-n">06</span>
+        <h3>A fresh world every time</h3>
+        <p>
+          Every episode is a new seed: different biome, terrain, cave layout, time of day.
+          Nothing can be memorised. The policy has to generalise across the whole world
+          generator.</p>
+      </article>
+    </div>
+
+    <figure class="gapfig">
+      <figcaption class="fig-head">
+        <h3>Where the time actually goes</h3>
+        <p>Gap between consecutive milestones, averaged over successful episodes. Two steps dominate everything else.</p>
+      </figcaption>
+      <div id="chart-gaps" class="chart"></div>
+    </figure>
+  </div>
+</section>
+
+<!-- ─────────────────────────  PIPELINE  ───────────────────────── -->
+<section id="pipeline" class="section">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="eyebrow">Method</p>
+      <h2>How VPT learns to play</h2>
+      <p class="sec-sub">
+        Video Pre-Training solves the label problem: there are 70,000 hours of Minecraft video
+        online, but none of it records which keys were pressed. VPT learns to <em>infer</em>
+        the actions, then trains on its own labels.
+      </p>
+    </header>
+
+    <ol class="stages">
+      <li class="stage">
+        <div class="stage-head">
+          <span class="stage-n">Stage 1</span>
+          <h3>Inverse Dynamics Model</h3>
+        </div>
+        <p class="stage-body">
+          Contractors play Minecraft while their keyboard and mouse are recorded — 2,000 hours
+          of video with ground-truth actions. A non-causal model learns to look at frames
+          <em>before and after</em> a transition and name the action that caused it. Seeing the
+          future makes this vastly easier than acting, so it needs far less data.
+        </p>
+        <div class="eq"><span class="eq-body">p<sub>IDM</sub>(a<sub>t</sub> | o<sub>1…T</sub>)</span><span class="eq-note">non-causal · 2,000 hrs labeled</span></div>
+      </li>
+
+      <li class="stage">
+        <div class="stage-head">
+          <span class="stage-n">Stage 2</span>
+          <h3>Behavioral cloning at scale</h3>
+        </div>
+        <p class="stage-body">
+          The IDM is run over 70,000 hours of unlabeled web video, producing pseudo-labels for
+          every frame. A causal transformer policy is then trained to predict those actions from
+          past frames alone. This is where the general Minecraft competence comes from — the
+          foundation model that already knows what a tree is for.
+        </p>
+        <div class="eq"><span class="eq-body">ℒ<sub>BC</sub> = −𝔼<sub>(o,a)∼𝒟</sub>[ log π<sub>θ</sub>(a | o<sub>≤t</sub>) ]</span><span class="eq-note">causal · 70,000 hrs pseudo-labeled</span></div>
+      </li>
+
+      <li class="stage">
+        <div class="stage-head">
+          <span class="stage-n">Stage 3</span>
+          <h3>RL fine-tuning with PPO</h3>
+        </div>
+        <p class="stage-body">
+          The BC policy is fine-tuned with PPO on a reward that pays out once per new item in the
+          crafting chain. Starting from a competent prior is what makes this tractable: random
+          exploration would essentially never see an iron ingot. A KL penalty against the frozen
+          BC policy keeps it from collapsing onto a degenerate strategy.
+        </p>
+        <div class="eq"><span class="eq-body">ℒ<sub>PPO</sub> = 𝔼<sub>t</sub>[ min( r<sub>t</sub>(θ)Â<sub>t</sub>, clip(r<sub>t</sub>(θ), 1−ε, 1+ε)Â<sub>t</sub> ) ]</span><span class="eq-note">checkpoint: rl-from-early-game-2x</span></div>
+      </li>
+    </ol>
+
+    <div class="arch">
+      <h3>What runs at inference</h3>
+      <div class="arch-flow">
+        <div class="node"><span class="node-t">Frame</span><span class="node-s">640×360 RGB</span></div>
+        <span class="arrow" aria-hidden="true"></span>
+        <div class="node"><span class="node-t">Resize</span><span class="node-s">128×128</span></div>
+        <span class="arrow" aria-hidden="true"></span>
+        <div class="node"><span class="node-t">IMPALA CNN</span><span class="node-s">3 blocks · width 8</span></div>
+        <span class="arrow" aria-hidden="true"></span>
+        <div class="node"><span class="node-t">Transformer</span><span class="node-s">4 layers · 16 heads · 128 ctx</span></div>
+        <span class="arrow" aria-hidden="true"></span>
+        <div class="node"><span class="node-t">Action heads</span><span class="node-s">24 buttons + camera bins</span></div>
+      </div>
+      <p class="arch-note">
+        Hidden size 2,048 with a 256-step attention memory carried across steps, so the policy
+        keeps a working memory of where it has been. Weights: <code>rl-from-early-game-2x</code>
+        (948 MB). The policy itself is OpenAI's, unmodified — the work here is the evaluation
+        harness and <code>IronIngotWrapper</code>, which terminates the episode the moment
+        <code>iron_ingot &gt; 0</code> appears in the inventory and logs the full milestone trace.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────  RESULTS  ───────────────────────── -->
+<section id="results" class="section alt">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="eyebrow">Results</p>
+      <h2>50 episodes, measured</h2>
+      <p class="sec-sub">
+        Each episode: a fresh seed, an 18,000-step budget, terminate on iron ingot. Five runs
+        crashed on MineRL environment errors and are excluded rather than counted as failures —
+        the rate below is over the 45 that ran to completion.
+      </p>
+    </header>
+
+    <div class="tiles">
+      <div class="tile"><span class="tile-l">Completed episodes</span><span class="tile-v">45</span><span class="tile-d">of 50 attempted</span></div>
+      <div class="tile"><span class="tile-l">Reached iron ingot</span><span class="tile-v">43</span><span class="tile-d">95.6% success</span></div>
+      <div class="tile"><span class="tile-l">Average steps</span><span class="tile-v">4,246</span><span class="tile-d">of 18,000 budget</span></div>
+      <div class="tile"><span class="tile-l">Fastest run</span><span class="tile-v">1,592</span><span class="tile-d">slowest 12,413</span></div>
+    </div>
+
+    <div class="grid-2">
+      <figure class="panel">
+        <figcaption class="fig-head">
+          <h3>Every completed episode</h3>
+          <p>One cell per episode, in run order. Filled = reached the ingot; hollow = stalled.</p>
+        </figcaption>
+        <div id="chart-grid" class="chart"></div>
+      </figure>
+
+      <figure class="panel">
+        <figcaption class="fig-head">
+          <h3>Success rate vs. baselines</h3>
+          <p>Share of episodes reaching an iron ingot, same environment and budget.</p>
+        </figcaption>
+        <div id="chart-baselines" class="chart"></div>
+      </figure>
+    </div>
+
+    <figure class="panel">
+      <figcaption class="fig-head">
+        <h3>Milestone progression</h3>
+        <p>Average step at which each reward first fires, over successful episodes. The chain is cheap until iron.</p>
+      </figcaption>
+      <div id="chart-milestones" class="chart"></div>
+    </figure>
+
+    <figure class="panel">
+      <figcaption class="fig-head">
+        <h3>Steps to iron ingot</h3>
+        <p>Distribution across the 43 successful episodes. Strongly right-skewed — most runs finish fast, a few wander.</p>
+      </figcaption>
+      <div id="chart-distribution" class="chart"></div>
+    </figure>
+
+    <div class="callout">
+      <h3>What the two failures have in common</h3>
+      <p>
+        Both reached iron ore and never smelted it. The agent mined the ore, and in one case
+        placed a furnace, but never completed the fuel-and-smelt GUI interaction before the
+        step budget ran out. Everything upstream of smelting is essentially solved at this
+        model scale; the remaining error mass sits in one place.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────  GALLERY  ───────────────────────── -->
+<section id="gallery" class="section">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="eyebrow">Qualitative</p>
+      <h2>The agent at each stage</h2>
+      <p class="sec-sub">Frames captured from evaluation episodes at the moment each reward fired.</p>
+    </header>
+
+    <div class="shots" id="shots"></div>
+
+    <figure class="video-wrap">
+      <div class="video-frame" id="video-frame">
+        <video id="demo-video" controls playsinline preload="metadata" poster="assets/video-poster.jpg">
+          <source src="assets/demo.mp4" type="video/mp4">
+        </video>
+        <div class="video-fallback" id="video-fallback">
+          <p><strong>Drop your demo video at <code>web/assets/demo.mp4</code></strong></p>
+          <p>and a poster frame at <code>web/assets/video-poster.jpg</code>. See <code>web/assets/README.md</code>.</p>
+        </div>
+      </div>
+      <figcaption>Full episode, 4× speed — first log through smelted ingot.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ─────────────────────────  AUTHOR  ───────────────────────── -->
+<section id="author" class="section alt">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="eyebrow">Credits</p>
+      <h2>Author</h2>
+    </header>
+
+    <ul class="team">
+      <li class="member">
+        <span class="avatar" aria-hidden="true">JP</span>
+        <span class="m-meta"><span class="m-name">John Park</span><span class="m-role">Evaluation harness, environment wrapper, analysis</span></span>
+      </li>
+    </ul>
+
+    <div class="links">
+      <a class="link-card" href="https://github.com/BushCrescent/minerl-iron-ingot" target="_blank" rel="noopener">
+        <span class="lc-t">Source code</span>
+        <span class="lc-s">github.com/BushCrescent/minerl-iron-ingot</span>
+      </a>
+      <a class="link-card" href="https://github.com/openai/Video-Pre-Training" target="_blank" rel="noopener">
+        <span class="lc-t">OpenAI VPT</span>
+        <span class="lc-s">Baker et al., 2022</span>
+      </a>
+      <a class="link-card" href="https://github.com/minerllabs/minerl" target="_blank" rel="noopener">
+        <span class="lc-t">MineRL v1.0</span>
+        <span class="lc-s">Environment &amp; competition suite</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <p>Built on the MineRL BASALT 2022 intro-track baseline (MIT, © MineRL Labs). VPT weights © OpenAI.</p>
+    <p class="dim">John Park</p>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

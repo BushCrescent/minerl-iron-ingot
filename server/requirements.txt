@@ -1,0 +1,5 @@
+# Streaming layer only — MineRL, PyTorch and the VPT deps come from the
+# base image / environment.yml at the repo root.
+fastapi>=0.110
+uvicorn[standard]>=0.27
+websockets>=12.0
