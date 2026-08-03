@@ -117,7 +117,92 @@ if you'd rather supply your own video.
 
 ---
 
-## 3. (Optional) Run the live backend
+## 3. Getting the agent actually running
+
+A recorded `replay.mp4` is **not** the only option — it's just the one that needs
+no infrastructure. Four ways to do this, cheapest first.
+
+### A. Run it on your own machine (free, works today)
+
+This Mac already runs MineRL — `logs/mc_2123.log` shows a Minecraft client
+booting a 640×360 `MineRLObtainDiamondShovel-v0` world. Java 8 and MineRL are
+installed. The only missing piece is the checkpoint:
+
+```bash
+mkdir -p data/VPT-models && cd data/VPT-models
+curl -LO https://openaipublic.blob.core.windows.net/minecraft-rl/models/2x.model
+curl -LO https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-early-game-2x.weights
+cd ../..
+
+./server/run_local.sh
+```
+
+Then set `DEMO_BACKEND: "http://localhost:8000"` in `web/config.js`, serve the
+site locally, and the viewport streams a live episode.
+
+The policy runs on **MPS** (the Apple GPU) — `server/vpt_agent.py` picks it,
+because upstream VPT only ever checks for CUDA and would otherwise drop you onto
+the CPU at a fraction of the speed. `/api/status` reports the observed
+`steps_per_sec` so you can see what you're getting.
+
+A Minecraft window *will* open on your machine — that's the server rendering,
+and it's unavoidable outside a Linux container with `Xvfb`. The website never
+sees it; the browser only receives streamed frames. Minimise it.
+
+### B. Your machine, but publicly reachable (free)
+
+The catch with A is that `localhost` only works for you. A tunnel fixes that
+without renting anything:
+
+```bash
+brew install cloudflared
+./server/run_local.sh --tunnel
+```
+
+`cloudflared` prints an `https://….trycloudflare.com` URL. Put it in
+`web/config.js` as `DEMO_BACKEND`, redeploy, and the public Amplify site streams
+live from your Mac. HTTPS is what makes this work — the browser needs `wss://`,
+which it won't upgrade to from an insecure origin.
+
+When your laptop is closed the probe fails and the site falls back to the
+recorded replay on its own. So the demo is live when you're around to show it
+and still works when you're not. For a portfolio this is usually the right
+answer.
+
+(A quick-tunnel URL changes on each restart. A named Cloudflare tunnel on a
+domain you own gives you a stable one.)
+
+### C. A hosted GPU (always live, costs money)
+
+For a demo that's live whether or not your laptop is on. Use `server/Dockerfile`
+on anything with a persistent GPU — RunPod, Lambda Labs, Modal, a GPU EC2
+instance. Roughly $0.20–0.50/hr for a T4, or scale-to-zero on a serverless GPU
+platform at the cost of a ~2 minute cold start before the first frame.
+
+Details in section 4 below.
+
+### D. Several replays instead of one
+
+Cheapest way to stop the demo feeling canned: record 3–5 episodes and pick one
+at random per visit. Different seed, different biome, different route to the
+ingot each time. `record_replay.py` writes one at a time; keeping them as
+`replay-1.mp4`, `replay-2.mp4` … and choosing in `config.js` is a small change.
+
+### Be realistic about episode length
+
+The ingot lands around step 3,600 on average. Even at 15 steps/s that's four
+minutes of watching, and most visitors won't wait. Two things help:
+
+- The opening minutes are the most legible part anyway — tree-chopping, the
+  crafting GUI, the first pickaxe. That's what sells it.
+- Set `MAX_STEPS` lower for a demo, or lead with the replay (which can be
+  sped up 4×) and offer live as the "watch it think in real time" option.
+
+Live mode is the flex. The replay is the substance. Ship both.
+
+---
+
+## 4. Running the live backend on a server
 
 ### Build and run
 

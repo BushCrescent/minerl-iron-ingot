@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from server.iron_ingot_wrapper import IronIngotWrapper, REWARD_ITEMS  # noqa: E402
+from server.vpt_agent import build_agent  # noqa: E402
 
 log = logging.getLogger("demo")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -113,9 +114,11 @@ class Engine:
         self.error = None
         self.env = None
         self.agent = None
+        self.device = None
         self.episode = 0
         self.step = 0
         self.total_reward = 0
+        self.sps = 0.0             # observed steps/sec, for the status endpoint
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -123,24 +126,17 @@ class Engine:
 
     # -- model / env boot (slow: ~30s for the Minecraft client) ------------
     def _load(self):
-        from openai_vpt.agent import MineRLAgent
         import gym
         import minerl  # noqa: F401  (registers the envs)
-
-        self.state = "loading"
-        log.info("loading VPT model %s", MODEL)
-        params = pickle.load(open(MODEL, "rb"))
-        policy_kwargs = params["model"]["args"]["net"]["args"]
-        pi_head_kwargs = params["model"]["args"]["pi_head_opts"]
-        pi_head_kwargs["temperature"] = float(pi_head_kwargs["temperature"])
 
         self.state = "booting"
         log.info("booting %s", ENV_ID)
         raw = gym.make(ENV_ID)
         self.env = IronIngotWrapper(raw, max_steps=MAX_STEPS)
 
-        self.agent = MineRLAgent(raw, policy_kwargs=policy_kwargs, pi_head_kwargs=pi_head_kwargs)
-        self.agent.load_weights(WEIGHTS)
+        self.state = "loading"
+        self.agent, self.device = build_agent(raw, MODEL, WEIGHTS)
+        log.info("VPT policy loaded on %s", self.device)
 
         self.state = "idle"
         log.info("engine ready")
@@ -186,12 +182,17 @@ class Engine:
                 "type": "episode_start", "episode": self.episode, "viewers": bus.count,
             })
 
+            t0 = time.time()
             while not self._stop.is_set():
                 action = self.agent.get_action(obs)
                 action["ESC"] = 0
                 obs, reward, done, info = self.env.step(action)
                 self.step = info["steps"]
                 self.total_reward = info["total_reward"]
+
+                if self.step % 50 == 0:
+                    self.sps = round(self.step / max(time.time() - t0, 1e-6), 1)
+                    log.info("step %d · %.1f steps/s · %d viewer(s)", self.step, self.sps, bus.count)
 
                 if reward > 0:
                     bit = int(reward)
@@ -263,6 +264,8 @@ async def status():
         "viewers": bus.count,
         "episode": engine.episode,
         "step": engine.step,
+        "steps_per_sec": engine.sps,
+        "device": engine.device,
         "env": ENV_ID,
         "error": engine.error,
     }

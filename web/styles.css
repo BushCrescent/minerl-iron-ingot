@@ -1,4 +1,29 @@
 /* ============================================================
+   Typefaces — self-hosted so there is no CDN dependency and no
+   silent fallback. Latin subset, variable weight: 48 KB + 31 KB.
+   ============================================================ */
+@font-face {
+  font-family: "Inter";
+  src: url("assets/fonts/inter-var-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("assets/fonts/jetbrains-mono-var-latin.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ============================================================
    Tokens — light is the base, dark is a selected set (not a flip).
    Chart roles follow the validated palette; see charts.js.
    ============================================================ */
@@ -26,8 +51,8 @@
 
   --r-sm: 6px; --r-md: 10px; --r-lg: 16px;
   --wrap: 1160px;
-  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -82,6 +107,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 76px; }
 body {
   margin: 0;
   font-family: var(--sans);
+  font-feature-settings: "cv05" 1, "ss03" 1;  /* single-storey l, curved r — Inter */
   background: var(--plane);
   color: var(--text-primary);
   font-size: 16px;
@@ -164,8 +190,9 @@ em { font-style: normal; color: var(--text-primary); font-weight: 500; }
   color: var(--text-muted); margin-bottom: 18px;
 }
 .hero h1 { font-size: clamp(38px, 5.6vw, 62px); letter-spacing: -.035em; }
+/* Band sits below Inter's x-height without clipping descenders. */
 .hl {
-  background: linear-gradient(180deg, transparent 62%, var(--series-1-soft) 62%);
+  background: linear-gradient(180deg, transparent 70%, var(--series-1-soft) 70%, var(--series-1-soft) 94%, transparent 94%);
   color: var(--series-1);
 }
 .lede { margin-top: 22px; font-size: 17px; color: var(--text-secondary); max-width: 58ch; }

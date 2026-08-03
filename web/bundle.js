@@ -41,7 +41,22 @@ const body = pick(/<body>([\s\S]*)<\/body>/i)
   .replace(/\s*<script type="module" src="app\.js"><\/script>/, "")
   .trim();
 
-const css = read("styles.css");
+/* Fonts must be inlined: a single-file build has no sibling assets/ directory
+   to fetch them from, and Artifact's CSP blocks external hosts outright. */
+function inlineFonts(source) {
+  return source.replace(/url\("(assets\/fonts\/[^"]+\.woff2)"\)/g, (whole, rel) => {
+    const file = path.join(WEB, rel);
+    if (!fs.existsSync(file)) {
+      console.warn(`  ! ${rel} missing — left as a URL, will fall back to system fonts`);
+      return whole;
+    }
+    const b64 = fs.readFileSync(file).toString("base64");
+    console.log(`  inlined ${rel} (${(b64.length / 1024).toFixed(0)} KB base64)`);
+    return `url("data:font/woff2;base64,${b64}")`;
+  });
+}
+
+const css = inlineFonts(read("styles.css"));
 const config = read("config.js");
 const script = MODULES.map((m) => `/* ===== ${m} ===== */\n${flatten(read(m))}`).join("\n");
 

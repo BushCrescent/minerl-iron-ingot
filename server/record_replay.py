@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from server.iron_ingot_wrapper import IronIngotWrapper, REWARD_ITEMS  # noqa: E402
+from server.vpt_agent import build_agent  # noqa: E402
 
 ASSETS = ROOT / "web" / "assets"
 
@@ -38,17 +39,6 @@ LABEL_BY_REWARD = {
 }
 
 
-def build_agent(env):
-    from openai_vpt.agent import MineRLAgent
-    params = pickle.load(open(ROOT / "data/VPT-models/2x.model", "rb"))
-    policy_kwargs = params["model"]["args"]["net"]["args"]
-    pi_head_kwargs = params["model"]["args"]["pi_head_opts"]
-    pi_head_kwargs["temperature"] = float(pi_head_kwargs["temperature"])
-    agent = MineRLAgent(env, policy_kwargs=policy_kwargs, pi_head_kwargs=pi_head_kwargs)
-    agent.load_weights(str(ROOT / "data/VPT-models/rl-from-early-game-2x.weights"))
-    return agent
-
-
 def record(args):
     import gym
     import minerl  # noqa: F401
@@ -56,7 +46,8 @@ def record(args):
     ASSETS.mkdir(parents=True, exist_ok=True)
     raw = gym.make("MineRLObtainDiamondShovel-v0")
     env = IronIngotWrapper(raw, max_steps=args.max_steps)
-    agent = build_agent(raw)
+    agent, device = build_agent(raw)
+    print(f"policy on {device}")
 
     for attempt in range(1, args.max_attempts + 1):
         print(f"\n=== attempt {attempt}/{args.max_attempts} ===")
