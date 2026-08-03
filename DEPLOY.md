@@ -42,20 +42,40 @@ live as an upgrade.
 
 `web/` is plain HTML/CSS/ES modules. No npm, no bundler, no framework.
 
-### GitHub Pages
+### AWS Amplify — the live deployment
+
+**https://main.dqfv9j2jsw34b.amplifyapp.com**
+(app `minerl-iron-ingot`, id `dqfv9j2jsw34b`, region `us-west-2`)
+
+To push changes:
 
 ```bash
-# from the repo root, on the branch you want to publish
-git add web && git commit -m "Add project site"
-git push
+./deploy-amplify.sh
 ```
 
-Then **Settings → Pages → Build and deployment**: source `Deploy from a branch`,
-branch `main`, folder `/web`. It appears at
-`https://<user>.github.io/<repo>/` in a minute or two.
+That zips `web/` and pushes it through Amplify's manual-deployment API — no Git
+connection and no build step, since the site is static. Takes about 20 seconds.
+Override the target with `AMPLIFY_APP_ID`, `AMPLIFY_BRANCH` or
+`AWS_DEFAULT_REGION` if the app is ever recreated.
 
-If you'd rather serve it from the repo root, add a workflow or just move `web/*`
-up a level — nothing in the page uses absolute paths.
+**Deploy on `git push` instead?** Connect the repo in the Amplify console
+(*Hosting → Connect branch*) and authorize the GitHub App. The repo is private,
+so that authorization is required — it can't be done from the CLI without
+handing AWS a GitHub token, which is why the manual flow above is wired up
+instead. Leave build settings empty; set the output directory to `web`.
+
+**Custom domain:** Amplify console → *Domain management*. Free managed
+certificate; needs a `CNAME` or a Route 53 alias.
+
+### GitHub Pages
+
+Note the repo is currently **private**, and Pages on a private repo requires a
+paid plan. Make it public first, then **Settings → Pages → Build and
+deployment**: source `Deploy from a branch`, branch `main`, folder `/web`. It
+appears at `https://<user>.github.io/<repo>/`.
+
+Nothing in the page uses absolute paths, so serving from a subdirectory works
+without changes.
 
 ### Netlify / Vercel / Cloudflare Pages
 
