@@ -21,9 +21,28 @@ import { MILESTONES } from "./data.js";
 /* ------------------------------------------------ screenshot gallery
    Looks for assets/milestone-<key>.jpg|png per milestone. Anything missing
    renders as a labelled placeholder so the grid never collapses. */
-function buildShots() {
+async function buildShots() {
   const host = document.getElementById("shots");
   if (!host) return;
+
+  /* The screenshots come from the recorded episode, so label them with that
+     episode's step numbers. Falls back to the evaluation averages when no
+     replay has been recorded yet. */
+  let actual = null;
+  try {
+    const r = await fetch((window.SITE_CONFIG || {}).REPLAY_META || "assets/replay.json",
+                          { cache: "no-store" });
+    if (r.ok) {
+      const meta = await r.json();
+      actual = new Map(meta.milestones.map((m) => [m.reward, m.step]));
+      const sub = document.querySelector("#gallery .sec-sub");
+      if (sub) {
+        sub.textContent =
+          `Frames from the recorded episode above, captured at the moment each reward fired — ` +
+          `first log through smelted ingot in ${meta.steps.toLocaleString()} steps.`;
+      }
+    }
+  } catch { /* no replay yet — averages it is */ }
 
   const PLACEHOLDER = `<div class="shot-ph">
       <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -36,10 +55,14 @@ function buildShots() {
   for (const m of MILESTONES) {
     const fig = document.createElement("figure");
     fig.className = "shot";
+    const step = actual?.get(m.reward);
+    const stepText = step != null
+      ? `step ${step.toLocaleString()}`
+      : `~step ${m.steps.toLocaleString()}`;   // evaluation average
     fig.innerHTML =
       `<div class="shot-img">${PLACEHOLDER}</div>` +
       `<figcaption><span class="shot-t">${m.label}</span>` +
-      `<span class="shot-s">reward ${m.reward} · ~step ${m.steps.toLocaleString()}</span></figcaption>`;
+      `<span class="shot-s">reward ${m.reward} · ${stepText}</span></figcaption>`;
     host.appendChild(fig);
 
     // Try jpg, then png; swap in whichever loads.

@@ -1,0 +1,74 @@
+{
+  "steps": 1870,
+  "success": true,
+  "partial": false,
+  "speed": 4,
+  "fps": 20,
+  "duration": 23.35,
+  "milestones": [
+    {
+      "reward": 1,
+      "key": "log",
+      "label": "Log",
+      "item": "log",
+      "step": 268,
+      "t": 3.35
+    },
+    {
+      "reward": 2,
+      "key": "planks",
+      "label": "Planks",
+      "item": "planks",
+      "step": 510,
+      "t": 6.35
+    },
+    {
+      "reward": 4,
+      "key": "stick_table",
+      "label": "Stick / Crafting table",
+      "item": "stick/crafting_table",
+      "step": 541,
+      "t": 6.75
+    },
+    {
+      "reward": 8,
+      "key": "wooden_pickaxe",
+      "label": "Wooden pickaxe",
+      "item": "wooden_pickaxe",
+      "step": 635,
+      "t": 7.9
+    },
+    {
+      "reward": 16,
+      "key": "cobblestone",
+      "label": "Cobblestone",
+      "item": "cobblestone",
+      "step": 859,
+      "t": 10.7
+    },
+    {
+      "reward": 32,
+      "key": "stone_furnace",
+      "label": "Stone pickaxe / Furnace",
+      "item": "furnace/stone_pickaxe",
+      "step": 1086,
+      "t": 13.55
+    },
+    {
+      "reward": 64,
+      "key": "iron_ore",
+      "label": "Iron ore",
+      "item": "iron_ore",
+      "step": 1490,
+      "t": 18.6
+    },
+    {
+      "reward": 128,
+      "key": "iron_ingot",
+      "label": "Iron ingot",
+      "item": "iron_ingot",
+      "step": 1870,
+      "t": 23.35
+    }
+  ]
+}

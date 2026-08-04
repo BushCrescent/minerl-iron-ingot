@@ -164,9 +164,10 @@ cython_debug/
 # ---- website / demo server ----
 # Model weights are ~950 MB; keep them out of the repo (use Git LFS if you must).
 data/VPT-models/
-# Generated demo media. Commit these ONLY if you want the live site to have a
-# replay — see web/assets/README.md. They can be large.
-web/assets/*.mp4
+# Generated demo media. replay.mp4 (~1.6 MB) and its timeline ARE committed —
+# they are what makes the deployed demo work from a fresh clone. Ignore any
+# other/larger captures. Use Git LFS for anything over 100 MB.
 web/assets/*.webm
-web/assets/replay.json
+!web/assets/replay.mp4
+!web/assets/replay.json
 node_modules/
