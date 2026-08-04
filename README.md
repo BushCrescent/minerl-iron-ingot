@@ -124,6 +124,5 @@ At inference: 128×128 resized frames → IMPALA CNN → 4-layer, 16-head transf
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Derived from the
-[MineRL BASALT 2022 intro-track baseline](https://github.com/minerllabs/basalt-2022-intro-track-baseline)
+MIT — see [LICENSE](LICENSE).
 (MIT, © 2022 MineRL Labs). VPT model and weights © OpenAI, under their own terms.
